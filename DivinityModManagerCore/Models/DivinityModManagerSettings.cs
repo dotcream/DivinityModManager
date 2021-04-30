@@ -12,121 +12,55 @@ using System.Windows.Input;
 using DivinityModManager.Util;
 using System.Reactive.Disposables;
 using System.Reflection;
+using Alphaleonis.Win32.Filesystem;
+using DivinityModManager.Models.App;
+using System.Reactive;
+using ReactiveUI.Fody.Helpers;
 
 namespace DivinityModManager.Models
 {
 	[DataContract]
 	public class DivinityModManagerSettings : ReactiveObject, IDisposable
 	{
-		private string gameDataPath = "";
+		[SettingsEntry("Game Data Path", "The path to the Data folder, for loading editor mods.&#x0a;Example: Divinity Original Sin 2/DefEd/Data")]
 
+		[DataMember] [Reactive]
+		public string GameDataPath { get; set; } = "";
+
+		[SettingsEntry("Game Executable Path", "The path to the game exe, EoCApp.exe.")]
+
+		[DataMember] [Reactive]
+		public string GameExecutablePath { get; set; } = "";
+
+		//Old. Will be read, but not written.
 		[DataMember]
-		public string GameDataPath
-		{
-			get => gameDataPath;
-			set 
-			{
-				if (value != gameDataPath) CanSaveSettings = true;
-				this.RaiseAndSetIfChanged(ref gameDataPath, value);
-			}
-		}
+		public string DOS2DEGameExecutable { set => GameExecutablePath = value; }
 
-		private string gameExecutable = "";
+		[SettingsEntry("Enable Story Log", "When launching the game, enable the Osiris story log (osiris.log).")]
+		[DataMember] [Reactive] public bool GameStoryLogEnabled { get; set; } = false;
 
-		[DataMember]
-		public string DOS2DEGameExecutable
-		{
-			get => gameExecutable;
-			set
-			{
-				if (value != gameExecutable) CanSaveSettings = true;
-				this.RaiseAndSetIfChanged(ref gameExecutable, value);
-			}
-		}
 
-		private bool gameStoryLogEnabled = false;
+		[SettingsEntry("Workshop Path", "The workshop folder.&#x0a;Used for detecting mod updates and new mods to be copied into the local mods folder.")]
+		[DataMember] [Reactive] public string WorkshopPath { get; set; } = "";
 
-		[DataMember]
-		public bool GameStoryLogEnabled
-		{
-			get => gameStoryLogEnabled;
-			set
-			{
-				if (value != gameStoryLogEnabled) CanSaveSettings = true;
-				this.RaiseAndSetIfChanged(ref gameStoryLogEnabled, value);
-			}
-		}
 
-		private string dos2workshopPath = "";
+		[SettingsEntry("Saved Load Orders Path", "The folder containing mod load orders.")]
+		[DataMember] [Reactive] public string LoadOrderPath { get; set; } = "Orders";
 
-		[DataMember]
-		public string DOS2WorkshopPath
-		{
-			get => dos2workshopPath;
-			set 
-			{
-				if (value != dos2workshopPath) CanSaveSettings = true;
-				this.RaiseAndSetIfChanged(ref dos2workshopPath, value);
-			}
-		}
 
-		private string loadOrderPath = "Orders";
+		[SettingsEntry("Enable Internal Log", "Enable the log for the mod manager.")]
+		[DataMember] [Reactive] public bool LogEnabled { get; set; } = false;
 
-		[DataMember]
-		public string LoadOrderPath
-		{
-			get => loadOrderPath;
-			set 
-			{
-				if (value != loadOrderPath) CanSaveSettings = true;
-				this.RaiseAndSetIfChanged(ref loadOrderPath, value); 
-			}
-		}
+		[SettingsEntry("Auto Add Missing Dependencies When Exporting", "Automatically add dependency mods above their dependents in the exported load order, if omitted from the active order.")]
+		[DataMember] [Reactive] public bool AutoAddDependenciesWhenExporting { get; set; } = true;
 
-		private bool logEnabled = false;
+		[SettingsEntry("Enable Automatic Updates", "Automatically check for updates when the program starts.")]
+		[DataMember] [Reactive] public bool CheckForUpdates { get; set; } = true;
 
-		[DataMember]
-		public bool LogEnabled
-		{
-			get => logEnabled;
-			set
-			{
-				if (value != logEnabled) CanSaveSettings = true;
-				this.RaiseAndSetIfChanged(ref logEnabled, value);
-			}
-		}
+		[SettingsEntry("Automatically Load GM Campaign Mods", "When a GM campaign is selected, its dependency mods will automatically be loaded without needing to manually import them.")]
+		[DataMember] [Reactive] public bool AutomaticallyLoaGMCampaignMods { get; set; } = false;
 
-		private bool autoAddDependenciesWhenExporting = true;
-
-		[DataMember]
-		public bool AutoAddDependenciesWhenExporting
-		{
-			get => autoAddDependenciesWhenExporting;
-			set
-			{
-				if (value != autoAddDependenciesWhenExporting) CanSaveSettings = true;
-				this.RaiseAndSetIfChanged(ref autoAddDependenciesWhenExporting, value);
-			}
-		}
-
-		private bool checkForUpdates = true;
-
-		[DataMember]
-		public bool CheckForUpdates
-		{
-			get => checkForUpdates;
-			set { this.RaiseAndSetIfChanged(ref checkForUpdates, value); }
-		}
-
-		private long lastUpdateCheck = -1;
-
-		[DataMember]
-		public long LastUpdateCheck
-		{
-			get => lastUpdateCheck;
-			set { this.RaiseAndSetIfChanged(ref lastUpdateCheck, value); }
-		}
-
+		[DataMember][Reactive] public long LastUpdateCheck { get; set; } = -1;
 		private string lastOrder = "";
 
 		[DataMember]
@@ -154,7 +88,7 @@ namespace DivinityModManager.Models
 			set { this.RaiseAndSetIfChanged(ref lastExtractOutputPath, value); }
 		}
 
-		private bool darkThemeEnabled = false;
+		private bool darkThemeEnabled = true;
 
 		[DataMember]
 		public bool DarkThemeEnabled
@@ -162,6 +96,9 @@ namespace DivinityModManager.Models
 			get => darkThemeEnabled;
 			set { this.RaiseAndSetIfChanged(ref darkThemeEnabled, value); }
 		}
+
+		[SettingsEntry("Shift Focus on Swap", "When moving selected mods to the opposite list with Enter, move focus to that list as well.")]
+		[DataMember] [Reactive] public bool ShiftListFocusOnSwap { get; set; } = false;
 
 		private OsiExtenderSettings extenderSettings;
 
@@ -172,32 +109,36 @@ namespace DivinityModManager.Models
 			set { this.RaiseAndSetIfChanged(ref extenderSettings, value); }
 		}
 
+		public string ExtenderLogDirectory
+		{
+			get
+			{
+				if (ExtenderSettings == null || String.IsNullOrWhiteSpace(ExtenderSettings.LogDirectory))
+				{
+
+					return Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "OsirisLogs");
+				}
+				return ExtenderSettings.LogDirectory;
+			}
+		}
+
+
 		private DivinityGameLaunchWindowAction actionOnGameLaunch = DivinityGameLaunchWindowAction.None;
 
 		[DataMember]
 		public DivinityGameLaunchWindowAction ActionOnGameLaunch
 		{
 			get => actionOnGameLaunch;
-			set { Trace.WriteLine(value); this.RaiseAndSetIfChanged(ref actionOnGameLaunch, value); }
+			set { this.RaiseAndSetIfChanged(ref actionOnGameLaunch, value); }
 		}
 
-		private bool disableMissingModWarnings = false;
+		[SettingsEntry("Disable Missing Mod Warnings", "If a load order is missing mods, no warnings will be displayed.")]
+		[DataMember] [Reactive] public bool DisableMissingModWarnings { get; set; } = false;
 
-		[DataMember]
-		public bool DisableMissingModWarnings
-		{
-			get => disableMissingModWarnings;
-			set { this.RaiseAndSetIfChanged(ref disableMissingModWarnings, value); }
-		}
+		[SettingsEntry("Disable Checking for Steam Workshop Tags", "The mod manager will try and find mod tags from the workshop by default.")]
+		[DataMember] [Reactive] public bool DisableWorkshopTagCheck { get; set; } = false;
 
-		private bool disableWorkshopTagCheck = false;
-
-		[DataMember]
-		public bool DisableWorkshopTagCheck
-		{
-			get => disableWorkshopTagCheck;
-			set { this.RaiseAndSetIfChanged(ref disableWorkshopTagCheck, value); }
-		}
+		[DataMember] [Reactive] public bool ExportDefaultExtenderSettings { get; set; } = false;
 
 		//Not saved for now
 
@@ -211,6 +152,7 @@ namespace DivinityModManager.Models
 
 		private bool debugModeEnabled = false;
 
+		[SettingsEntry("Enable Developer Mode", "This enables features for mod developers, such as being able to copy a mod's UUID in context menus, and additional OsiExtender options.")]
 		[DataMember]
 		public bool DebugModeEnabled
 		{
@@ -220,22 +162,33 @@ namespace DivinityModManager.Models
 				this.RaiseAndSetIfChanged(ref debugModeEnabled, value);
 				DivinityApp.DeveloperModeEnabled = value;
 			}
-
 		}
 
-		private bool extenderTabIsVisible = false;
+		[Reactive] [DataMember] public string GameLaunchParams { get; set; }
 
-		public bool ExtenderTabIsVisible
+		[Reactive] [DataMember] public bool GameMasterModeEnabled { get; set; } = false;
+		[Reactive] public bool ExtenderTabIsVisible { get; set; } = false;
+
+		[Reactive] public bool KeybindingsTabIsVisible { get; set; } = false;
+
+		private Hotkey selectedHotkey;
+
+		public Hotkey SelectedHotkey
 		{
-			get => extenderTabIsVisible;
-			set { this.RaiseAndSetIfChanged(ref extenderTabIsVisible, value); }
+			get => selectedHotkey;
+			set { this.RaiseAndSetIfChanged(ref selectedHotkey, value); }
 		}
+
+		[Reactive] public int SelectedTabIndex { get; set; } = 0;
 
 		public ICommand SaveSettingsCommand { get; set; }
 		public ICommand OpenSettingsFolderCommand { get; set; }
 		public ICommand ExportExtenderSettingsCommand { get; set; }
 		public ICommand ResetExtenderSettingsToDefaultCommand { get; set; }
+		public ICommand ResetKeybindingsCommand { get; set; }
 		public ICommand ClearWorkshopCacheCommand { get; set; }
+		public ICommand AddLaunchParamCommand { get; set; }
+		public ICommand ClearLaunchParamsCommand { get; set; }
 
 		public CompositeDisposable Disposables { get; internal set; }
 
@@ -280,7 +233,11 @@ namespace DivinityModManager.Models
 			ExtenderSettings.WhenAnyPropertyChanged(extender_properties).Subscribe((c) =>
 			{
 				if (SettingsWindowIsOpen) CanSaveSettings = true;
+				this.RaisePropertyChanged("ExtenderLogDirectory");
 			}).DisposeWith(Disposables);
+
+			this.WhenAnyValue(x => x.SelectedTabIndex, (index) => index == 1).BindTo(this, x => x.ExtenderTabIsVisible);
+			this.WhenAnyValue(x => x.SelectedTabIndex, (index) => index == 2).BindTo(this, x => x.KeybindingsTabIsVisible);
 		}
 	}
 }

@@ -1,9 +1,10 @@
 ## Custom
-_Backup/*
-LSLib/*
+_Backup/
+_Releases/
+External/
 
 Assets/
-!/DivinityModManagerGUI_WPF/Resources/
+!/GUI/Resources/
 
 ## Visual Studio Code specific files and folder
 .vscode/*
@@ -342,3 +343,4 @@ ASALocalRun/
 .mfractor/
 *.zip
 *.psd
+PublishRelease.py

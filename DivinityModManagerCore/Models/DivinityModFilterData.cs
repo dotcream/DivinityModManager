@@ -21,7 +21,7 @@ namespace DivinityModManager.Models
 			{
 				var vals = val.Split(separators, StringSplitOptions.RemoveEmptyEntries);
 				var findVals = FilterValue.Split(separators, StringSplitOptions.RemoveEmptyEntries);
-				Trace.WriteLine($"Searching for '{String.Join("; ", findVals)}' in ({String.Join("; ", vals)}");
+				DivinityApp.Log($"Searching for '{String.Join("; ", findVals)}' in ({String.Join("; ", vals)}");
 				return vals.Any(x => findVals.Any(x2 => CultureInfo.CurrentCulture.CompareInfo.IndexOf(x, x2, CompareOptions.IgnoreCase) >= 0));
 			}
 			else
@@ -44,7 +44,7 @@ namespace DivinityModManager.Models
 				if (ValueContains(mod.Author)) return true;
 			}
 
-			if (PropertyContains("version"))
+			if (PropertyContains("Version"))
 			{
 				if (ValueContains(mod.Version.Version)) return true;
 			}
@@ -64,7 +64,7 @@ namespace DivinityModManager.Models
 			{
 				foreach(var dependency in mod.Dependencies.Items)
 				{
-					if (ValueContains(dependency.Name))
+					if (ValueContains(dependency.Name) || FilterValue == dependency.UUID || ValueContains(dependency.Folder))
 					{
 						return true;
 					}
@@ -73,7 +73,7 @@ namespace DivinityModManager.Models
 
 			if (PropertyContains("Name"))
 			{
-				//Trace.WriteLine($"Searching for '{FilterValue}' in '{mod.Name}' | {mod.Name.IndexOf(FilterValue)}");
+				//DivinityApp.LogMessage($"Searching for '{FilterValue}' in '{mod.Name}' | {mod.Name.IndexOf(FilterValue)}");
 				if (ValueContains(mod.Name)) return true;
 			}
 

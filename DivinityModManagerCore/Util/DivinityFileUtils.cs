@@ -88,10 +88,16 @@ namespace DivinityModManager.Util
 			"log.txt",
 			"personallog.txt",
 			"story_orphanqueries_found.txt",
+			"goals.div",
+			"goals.raw",
+			"story.div",
+			"story_ac.dat",
+			"story_definitions.div",
+			"story.div.osi",
 			".ailog",
 			".log",
 			".debugInfo",
-			".dmp"
+			".dmp",
 		};
 
 		private static bool IgnoreFile(string targetFilePath, string ignoredFileName)
@@ -100,7 +106,7 @@ namespace DivinityModManager.Util
 			{
 				return true;
 			}
-			if (Path.GetExtension(targetFilePath).Equals(ignoredFileName, StringComparison.OrdinalIgnoreCase))
+			else if (ignoredFileName.Substring(0) == "." && Path.GetExtension(targetFilePath).Equals(ignoredFileName, StringComparison.OrdinalIgnoreCase))
 			{
 				return true;
 			}
@@ -131,7 +137,7 @@ namespace DivinityModManager.Util
 					await AddFilesToPackageAsync(package, f, dataRootPath, outputPath, ignoredFiles, token.Value);
 				}
 
-				Trace.WriteLine($"Writing package '{outputPath}'.");
+				DivinityApp.Log($"Writing package '{outputPath}'.");
 				using (var writer = new PackageWriter(package, outputPath))
 				{
 					await WritePackageAsync(writer, package, outputPath, token.Value);
@@ -142,11 +148,11 @@ namespace DivinityModManager.Util
 			{
 				if (!token.Value.IsCancellationRequested)
 				{
-					Trace.WriteLine($"Error creating package: {ex.ToString()}");
+					DivinityApp.Log($"Error creating package: {ex.ToString()}");
 				}
 				else
 				{
-					Trace.WriteLine($"Cancelled creating package: {ex.ToString()}");
+					DivinityApp.Log($"Cancelled creating package: {ex.ToString()}");
 				}
 				return false;
 			}
@@ -236,7 +242,7 @@ namespace DivinityModManager.Util
 					AddFilesToPackage(package, f, dataRootPath, outputPath, ignoredFiles);
 				}
 
-				Trace.WriteLine($"Writing package '{outputPath}'.");
+				DivinityApp.Log($"Writing package '{outputPath}'.");
 				using (var writer = new PackageWriter(package, outputPath))
 				{
 					WritePackage(writer, package, outputPath);
@@ -245,7 +251,7 @@ namespace DivinityModManager.Util
 			}
 			catch (Exception ex)
 			{
-				Trace.WriteLine($"Error creating package: {ex.ToString()}");
+				DivinityApp.Log($"Error creating package: {ex}");
 				return false;
 			}
 		}
@@ -267,7 +273,7 @@ namespace DivinityModManager.Util
 
 			foreach (KeyValuePair<string, string> file in files)
 			{
-				Trace.WriteLine("Creating FilesystemFileInfo ");
+				DivinityApp.Log("Creating FilesystemFileInfo ");
 				FilesystemFileInfo fileInfo = FilesystemFileInfo.CreateFromEntry(file.Value, file.Key);
 				package.Files.Add(fileInfo);
 			}
@@ -313,7 +319,7 @@ namespace DivinityModManager.Util
 				}
 				catch (Exception ex)
 				{
-					Trace.WriteLine($"Error extracting package: {ex.ToString()}");
+					DivinityApp.Log($"Error extracting package: {ex.ToString()}");
 				}
 			}
 			return success >= count;
@@ -329,7 +335,7 @@ namespace DivinityModManager.Util
 			}
 			catch (Exception ex)
 			{
-				Trace.WriteLine($"Error extracting package: {ex.ToString()}");
+				DivinityApp.Log($"Error extracting package: {ex.ToString()}");
 				return false;
 			}
 		}
@@ -373,7 +379,7 @@ namespace DivinityModManager.Util
 			}
 			catch (Exception ex)
 			{
-				Trace.WriteLine($"Error writing file: {ex.ToString()}");
+				DivinityApp.Log($"Error writing file: {ex.ToString()}");
 				return false;
 			}
 		}

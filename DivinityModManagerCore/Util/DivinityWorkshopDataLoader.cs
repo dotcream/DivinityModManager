@@ -60,7 +60,7 @@ namespace DivinityModManager.Util
 				i++;
 			}
 
-			Trace.WriteLine($"Updating workshop data for mods.");
+			DivinityApp.Log($"Updating workshop data for mods.");
 
 			string responseData = "";
 			try
@@ -71,7 +71,7 @@ namespace DivinityModManager.Util
 			}
 			catch(Exception ex)
 			{
-				Trace.WriteLine($"Error requesting Steam API to get workshop mod data:\n{ex.ToString()}");
+				DivinityApp.Log($"Error requesting Steam API to get workshop mod data:\n{ex.ToString()}");
 			}
 
 			int totalLoaded = 0;
@@ -96,35 +96,35 @@ namespace DivinityModManager.Util
 									mod.WorkshopData.Tags = GetWorkshopTags(d);
 									mod.AddTags(mod.WorkshopData.Tags);
 								}
-								cachedData.AddOrUpdate(mod.UUID, d, mod.WorkshopData.Tags);
-								//Trace.WriteLine($"Loaded workshop details for mod {mod.Name}:");
+								//DivinityApp.LogMessage($"Loaded workshop details for mod {mod.Name}:");
 								totalLoaded++;
 							}
+							cachedData.AddOrUpdate(d.publishedfileid, d, mod.WorkshopData.Tags);
 						}
 						catch(Exception ex)
 						{
-							Trace.WriteLine($"Error parsing mod data for {d.title}({d.publishedfileid})\n{ex.ToString()}");
+							DivinityApp.Log($"Error parsing mod data for {d.title}({d.publishedfileid})\n{ex.ToString()}");
 						}
 					}
 
-					Trace.WriteLine($"Successfully loaded workshop data for {totalLoaded} mods.");
+					DivinityApp.Log($"Successfully loaded workshop mod data.");
 				}
 				else
 				{
-					Trace.WriteLine("Failed to load workshop data for mods.");
-					Trace.WriteLine($"{responseData}");
+					DivinityApp.Log("Failed to load workshop data for mods.");
+					DivinityApp.Log($"{responseData}");
 				}
 			}
 			else
 			{
-				Trace.WriteLine("Failed to load workshop data for mods - no response data.");
+				DivinityApp.Log("Failed to load workshop data for mods - no response data.");
 			}
 			return totalLoaded;
 		}
 
-		public static async Task<bool> GetAllWorkshopDataAsync(DivinityModManagerCachedWorkshopData cachedData)
+		public static async Task<bool> GetAllWorkshopDataAsync(DivinityModManagerCachedWorkshopData cachedData, string appid)
 		{
-			Trace.WriteLine($"Attempting to get workshop data for mods missing workshop folders.");
+			DivinityApp.Log($"Attempting to get workshop data for mods missing workshop folders.");
 			int totalFound = 0;
 
 			int total = 1482;
@@ -133,7 +133,7 @@ namespace DivinityModManager.Util
 
 			while (page < maxPage)
 			{
-				string url = $"https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/?key={ApiKeys.STEAM_WEB_API}&appid=435150&return_short_description=true&numperpage=99&return_tags=true&return_metadata=true&requiredtags[0]=Definitive+Edition&excludedtags[0]=GM+Campaign&page={page}";
+				string url = $"https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/?key={ApiKeys.STEAM_WEB_API}&appid={appid}&return_short_description=true&numperpage=99&return_tags=true&return_metadata=true&requiredtags[0]=Definitive+Edition&excludedtags[0]=GM+Campaign&page={page}";
 				string responseData = "";
 				try
 				{
@@ -142,7 +142,7 @@ namespace DivinityModManager.Util
 				}
 				catch (Exception ex)
 				{
-					Trace.WriteLine($"Error requesting Steam API to get workshop mod data:\n{ex.ToString()}");
+					DivinityApp.Log($"Error requesting Steam API to get workshop mod data:\n{ex.ToString()}");
 				}
 
 				if (!String.IsNullOrEmpty(responseData))
@@ -154,7 +154,7 @@ namespace DivinityModManager.Util
 					}
 					catch (Exception ex)
 					{
-						Trace.WriteLine(ex.ToString());
+						DivinityApp.Log(ex.ToString());
 					}
 
 					if (pResponse != null && pResponse.response != null && pResponse.response.publishedfiledetails != null && pResponse.response.publishedfiledetails.Count > 0)
@@ -180,18 +180,18 @@ namespace DivinityModManager.Util
 							}
 							catch (Exception ex)
 							{
-								Trace.WriteLine($"Error parsing mod data for {d.title}({d.publishedfileid})\n{ex.ToString()}");
+								DivinityApp.Log($"Error parsing mod data for {d.title}({d.publishedfileid})\n{ex.ToString()}");
 							}
 						}
 					}
 					else
 					{
-						Trace.WriteLine($"Failed to get workshop data.");
+						DivinityApp.Log($"Failed to get workshop data from {url}");
 					}
 				}
 				else
 				{
-					Trace.WriteLine("Failed to load workshop data for mods - no response data.");
+					DivinityApp.Log("Failed to load workshop data for mods - no response data.");
 				}
 
 				page++;
@@ -199,7 +199,7 @@ namespace DivinityModManager.Util
 
 			if(totalFound > 0)
 			{
-				Trace.WriteLine($"Cached workshop data for {totalFound} mods.");
+				DivinityApp.Log($"Cached workshop data for {totalFound} mods.");
 				return true;
 			}
 			else
@@ -208,19 +208,19 @@ namespace DivinityModManager.Util
 			}
 		}
 
-		public static async Task<int> FindWorkshopDataAsync(List<DivinityModData> mods, DivinityModManagerCachedWorkshopData cachedData)
+		public static async Task<int> FindWorkshopDataAsync(List<DivinityModData> mods, DivinityModManagerCachedWorkshopData cachedData, string appid)
 		{
 			if (mods == null || mods.Count == 0)
 			{
-				Trace.WriteLine($"Skipping FindWorkshopDataAsync");
+				DivinityApp.Log($"Skipping FindWorkshopDataAsync");
 				return 0;
 			}
-			Trace.WriteLine($"Attempting to get workshop data for mods missing workshop folders.");
+			DivinityApp.Log($"Attempting to get workshop data for {mods.Count} mods.");
 			int totalFound = 0;
 			foreach (var mod in mods)
 			{
 				string name = Uri.EscapeUriString(mod.DisplayName);
-				string url = $"https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/?key={ApiKeys.STEAM_WEB_API}&appid=435150&search_text={name}&return_short_description=true&return_tags=true&numperpage=99&return_metadata=true&requiredtags[0]=Definitive+Edition";
+				string url = $"https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/?key={ApiKeys.STEAM_WEB_API}&appid={appid}&search_text={name}&return_short_description=true&return_tags=true&numperpage=99&return_metadata=true&requiredtags[0]=Definitive+Edition";
 				string responseData = "";
 				try
 				{
@@ -229,10 +229,10 @@ namespace DivinityModManager.Util
 				}
 				catch (Exception ex)
 				{
-					Trace.WriteLine($"Error requesting Steam API to get workshop mod data:\n{ex.ToString()}");
+					DivinityApp.Log($"Error requesting Steam API to get workshop mod data:\n{ex}");
 				}
 
-				//Trace.WriteLine(responseData);
+				//DivinityApp.LogMessage(responseData);
 				if (!String.IsNullOrEmpty(responseData))
 				{
 					QueryFilesResponse pResponse = null;
@@ -243,7 +243,7 @@ namespace DivinityModManager.Util
 					}
 					catch(Exception ex)
 					{
-						Trace.WriteLine(ex.ToString());
+						DivinityApp.Log(ex.ToString());
 					}
 					
 					if (pResponse != null && pResponse.response != null && pResponse.response.publishedfiledetails != null && pResponse.response.publishedfiledetails.Count > 0)
@@ -255,31 +255,43 @@ namespace DivinityModManager.Util
 							try
 							{
 								d.DeserializeMetadata();
-								if (d.GetGuid() == mod.UUID)
+								string dUUID = d.GetGuid();
+								if(!String.IsNullOrEmpty(dUUID))
 								{
-									mod.WorkshopData.ID = d.publishedfileid;
-									mod.WorkshopData.CreatedDate = DateUtils.UnixTimeStampToDateTime(d.time_created);
-									mod.WorkshopData.UpdatedDate = DateUtils.UnixTimeStampToDateTime(d.time_updated);
-									if (d.tags != null && d.tags.Count > 0)
+									var modTags = GetWorkshopTags(d);
+									cachedData.AddOrUpdate(dUUID, d, modTags);
+
+									if (dUUID == mod.UUID)
 									{
-										mod.WorkshopData.Tags = GetWorkshopTags(d);
-										mod.AddTags(mod.WorkshopData.Tags);
+										if (String.IsNullOrEmpty(mod.WorkshopData.ID) || mod.WorkshopData.ID == d.publishedfileid)
+										{
+											mod.WorkshopData.ID = d.publishedfileid;
+											mod.WorkshopData.CreatedDate = DateUtils.UnixTimeStampToDateTime(d.time_created);
+											mod.WorkshopData.UpdatedDate = DateUtils.UnixTimeStampToDateTime(d.time_updated);
+											if (d.tags != null && d.tags.Count > 0)
+											{
+												mod.WorkshopData.Tags = modTags;
+												mod.AddTags(mod.WorkshopData.Tags);
+											}
+											DivinityApp.Log($"Found workshop ID {mod.WorkshopData.ID} for mod {mod.DisplayName}.");
+											totalFound++;
+										}
+										else
+										{
+											DivinityApp.Log($"Found workshop entry for mod {mod.DisplayName}, but it has a different workshop ID? Current({mod.WorkshopData.ID}) Found({d.publishedfileid})");
+										}
 									}
-									cachedData.AddOrUpdate(mod.UUID, d, mod.WorkshopData.Tags);
-									Trace.WriteLine($"Found workshop ID {mod.WorkshopData.ID} for mod {mod.DisplayName}.");
-									totalFound++;
-									break;
 								}
 							}
 							catch (Exception ex)
 							{
-								Trace.WriteLine($"Error parsing mod data for {d.title}({d.publishedfileid})\n{ex.ToString()}");
+								DivinityApp.Log($"Error parsing mod data for {d.title}({d.publishedfileid})\n{ex.ToString()}");
 							}
 						}
 					}
 					else
 					{
-						Trace.WriteLine($"Failed to find workshop data for mod {mod.DisplayName}");
+						DivinityApp.Log($"Failed to find workshop data for mod {mod.DisplayName}");
 						if(!cachedData.NonWorkshopMods.Contains(mod.UUID))
 						{
 							cachedData.NonWorkshopMods.Add(mod.UUID);
@@ -289,17 +301,17 @@ namespace DivinityModManager.Util
 				}
 				else
 				{
-					Trace.WriteLine("Failed to load workshop data for mods - no response data.");
+					DivinityApp.Log("Failed to load workshop data for mods - no response data.");
 				}
 			}
 
 			if (totalFound > 0)
 			{
-				Trace.WriteLine($"Successfully loaded workshop data for {totalFound} mods.");
+				DivinityApp.Log($"Successfully loaded workshop data for {totalFound} mods.");
 			}
 			else
 			{
-				Trace.WriteLine($"Failed to find workshop data for {mods.Count} mods (they're probably not on the workshop).");
+				DivinityApp.Log($"Failed to find workshop data for {mods.Count} mods (they're probably not on the workshop).");
 			}
 
 			return totalFound;
